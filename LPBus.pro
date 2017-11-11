@@ -13,7 +13,8 @@ SOURCES += \
     passengercreator.cpp \
     map.cpp \
     main.cpp \
-    router.cpp
+    router.cpp \
+    lptest.cpp
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which as been marked deprecated (the exact warnings
@@ -30,3 +31,8 @@ HEADERS += \
     passengercreator.h \
     map.h \
     router.h
+
+win32: LIBS += -L$$PWD/lib/lp_solve_5.5.2.5_dev_win32/ -llpsolve55
+
+INCLUDEPATH += $$PWD/lib/lp_solve_5.5.2.5_dev_win32
+DEPENDPATH += $$PWD/lib/lp_solve_5.5.2.5_dev_win32

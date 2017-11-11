@@ -6,8 +6,12 @@
 class Router
 {
 public:
-    Router();
-    void buildRoute(Map*map);
+    Router(Map map, double cost, double passengerFee, double maxDistance);
+    void buildRoute();
+    int chooseStop(std::vector<std::pair<int, int>> routes);
+private:
+    Map map;
+    double cost, passengerFee, maxDistance;
 };
 
 #endif // ROUTER_H

@@ -1,14 +1,15 @@
 #include <QCoreApplication>
 #include "map.h"
 #include "PassengerCreator.h"
+#include "router.h"
 
 int main()
 {
-    int nPassengers; //define
+
     Map map;
     PassengerCreator creator;
-
-    creator.createPasengers(&map, nPassengers);
-
+    creator.createPasengers(&map, 0);
+    Router router(map, 0, 0, 0);
+    router.buildRoute();
 
 }
