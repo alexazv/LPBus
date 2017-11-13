@@ -1,13 +1,13 @@
 #ifndef PASSENGERCREATOR_H
 #define PASSENGERCREATOR_H
 
-#include "map.h"
+#include "graph.h"
 
 class PassengerCreator
 {
 public:
     PassengerCreator();
-    void createPasengers(Map * map, int nPassengers);
+    void createPasengers(Graph * map, int nPassengers);
 private:
 
 

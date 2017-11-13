@@ -6,7 +6,7 @@ PassengerCreator::PassengerCreator()
 
 }
 
-void PassengerCreator::createPasengers(Map * map, int nPassengers)
+void PassengerCreator::createPasengers(Graph * map, int nPassengers)
 {
 
 }

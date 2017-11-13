@@ -1,14 +1,17 @@
-#ifndef MAP_H
-#define MAP_H
+#ifndef GRAPH_H
+#define GRAPH_H
 
 #include "QList"
 #include <vector>
 #include <utility>
 
-class Map
+typedef std::string string;
+
+class Graph
 {
 public:
-    Map();
+    Graph();
+    Graph(const char *filename);
     std::vector<std::pair<int, int> > getPassengers();
     std::vector<std::pair<int, int> > getPassengers(int stop, bool direction, bool remove);
     void addPassenger(int start, int finish);
@@ -19,7 +22,10 @@ public:
     void setFinishNode(int stop);
     int n_stops();
     //std::vector<std::vector<std::pair<int, int>>> getRoutes();
-    std::vector<std::pair<int, int>> getRoutes(int stop);
+    std::vector<std::pair<int, int>> getRoutes(int stop); //change distance to double
+
+    void addStop();
+    void addRoute(int start, int finish, int distance);
 
 
 private:
@@ -28,6 +34,7 @@ private:
     std::vector<std::list<int>> distance;
     std::vector<std::vector<std::pair<int, int>>> routes; //pair <destination, value>
     std::vector<std::pair<int, int>> passengerList; //pair<start, finish>
+    std::vector<string> split(string line, char delim);
 };
 
 #endif // MAP_H
