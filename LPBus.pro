@@ -40,4 +40,7 @@ INCLUDEPATH += $$PWD/lib/lp_solve_5.5.2.5_dev_win32
 DEPENDPATH += $$PWD/lib/lp_solve_5.5.2.5_dev_win32
 
 DISTFILES += \
+    maps/map-stanford-small.txt \
+    maps/map-istanbul.txt \
+    maps/map-san-francisco.txt \
     maps/map-stanford-small.txt

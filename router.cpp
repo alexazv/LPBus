@@ -51,7 +51,7 @@ void Router::buildRoute(){
 }
 
 //todo: add distance constraint
-int Router::chooseStop(std::vector<std::pair<int, int> > routes){
+int Router::chooseStop(std::vector<std::pair<int, double> > routes){
 
     lprec *lp = make_lp(0, routes.size());
     int nrest = 1;

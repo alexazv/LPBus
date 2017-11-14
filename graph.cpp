@@ -4,7 +4,8 @@
 #include<fstream>
 #include <string>
 #include <sstream>
-
+#include <algorithm>
+#include "lp_lib.h"
 using namespace std;
 
 Graph::Graph()
@@ -34,31 +35,34 @@ Graph::Graph(const char * filename){
         std::vector<string> tokens;// = split(line);
         std::map<string, int> map;
 
-        while(line != "EDGES" && !infile.eof()){
-
-            getline(infile, line);
+        getline(infile, line);
+        while(line != "EDGES" && !infile.eof()){          
             //VERTICES
             tokens = split(line, ';');
 
-            map.insert(std::pair<string,int>(tokens[0], i));
-            addStop();
-            i++;
+            if(line != ""){
+                map.insert(std::pair<string,int>(tokens[0], i));
+                addStop();
+                i++;
+            }
+
+            getline(infile, line);
         }
 
+
+        //todo: error treatment
         getline(infile, line);
         while(!infile.eof()){
             //EDGES
             tokens = split(line, ';');
-            string a3 = tokens[2];
             addRoute(map.at(tokens[0]), map.at(tokens[1]), std::stod(tokens[2]));
+            addRoute(map.at(tokens[1]), map.at(tokens[0]), std::stod(tokens[2]));
             getline(infile, line);
         }
 
     }
 
     infile.close();
-    system("pause");
-
 }
 
 std::vector<string> Graph::split(string line, char delim){
@@ -79,7 +83,7 @@ std::vector<std::pair<int, int> > Graph::getPassengers(){
     return passengerList;
 }
 
-std::vector<std::pair<int, int>> Graph::getPassengers(int stop, bool direction, bool remove){
+std::vector<std::pair<int, int> > Graph::getPassengers(int stop, bool direction, bool remove){
 
     std::vector<std::pair<int, int>> passengers;
     for(int i = 0; i < passengerList.size(); i++){
@@ -95,6 +99,7 @@ std::vector<std::pair<int, int>> Graph::getPassengers(int stop, bool direction, 
     }
     return passengers;
 }
+
 void Graph::addPassenger(int start, int finish){
     std::pair<int, int> passenger(start, finish);
     passengerList.push_back(passenger);
@@ -117,15 +122,49 @@ int Graph::n_stops(){
     return routes.size();
 }
 
-std::vector<std::pair<int, int>> Graph::getRoutes(int stop){
+std::vector<std::pair<int, double> > Graph::getRoutes(int stop){
     return routes[stop];
 }
 
 void Graph::addStop(){
-    vector<std::pair<int, int>> stop;
+    vector<std::pair<int, double>> stop;
     routes.push_back(stop);
 }
-void Graph::addRoute(int start, int finish, int distance){
-    std::pair<int, int> route(finish, distance);
+void Graph::addRoute(int start, int finish, double distance){
+    std::pair<int, double> route(finish, distance);
     routes[start].push_back(route);
+}
+
+void Graph::setMaxDistance(double max){
+    maxDistance = max;
+}
+
+double Graph::getMaxDistance(){
+    return maxDistance;
+}
+
+void Graph::calculateDistances(){
+
+    int N = n_stops();
+
+    distance = std::vector<std::vector<double>>(N, std::vector<double>(N, maxDistance));
+
+
+    for(int i = 0; i< N; i++){
+        std::vector<std::pair<int, double>> routes = getRoutes(i);
+        for(int j = 0; j < routes.size(); j++)
+                distance[i][routes[j].first] = routes[j].second;
+
+    }
+
+
+    //Floyd-Warshall algorythm (use more efficient one?)
+    for(int k = 0 ; k != N; k++)
+        for(int i = 0 ; i != N; i++)
+           for(int j = 0 ; j != N; j++)
+                distance[i][j] = (distance[i][j] < (distance[i][k] + distance[k][j])) ?
+                    distance[i][j] : (distance[i][k] + distance[k][j]);
+
+    int p = 5;
+    p+=p;
 }
