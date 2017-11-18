@@ -2,93 +2,280 @@
 #include <set>
 #include "lp_lib.h"
 #include "graph.h"
+#include "route.h"
+#include <string>
+#include <vector>
+#include <iostream>
+#include <cstdio>
+#include <ctime>
+#include <chrono>
+#include <sstream>
 
-Router::Router(Graph map, double cost, double passengerFee, double maxDistance)
+using namespace std;
+
+long int n = 0;
+
+std::vector<Route> routes;
+
+Router::Router(Graph map, double cost, double passengerFee, double maxDistance, int maxCapacity)
 {
     this->graph = map;
     this->cost = cost;
     this->passengerFee = passengerFee;
     this->maxDistance = maxDistance;
+    this->maxCapacity = maxCapacity;
+
+    //build rules
+    for(int i = 0; i < this->graph.passengerList.size(); i++){
+        int x = this->graph.passengerList[i].first;
+        int y = this->graph.passengerList[i].second;
+
+
+
+        if(rules.find(x) == rules.end())
+            rules.insert(std::pair<int, std::vector<int>>(x, std::vector<int>()));
+        if(std::find(rules[x].begin(), rules[x].end(), y) == rules[x].end())
+            rules[x].push_back(y);
+    }
+
+    buildAllRoutes();
 }
 
-//todo: add distance constraint
-//todo: add stops in waitlist to chooseStop
-void Router::buildRoute(){
+void Router::buildAllRoutes(){
 
-    std::vector<std::pair<int,int>> passengersInBus;
-    std::set<int> waitList; //must-visit nodes
-    std::vector<std::vector<int>> busRoutes; //route for each bus
+    //for(int i = 2; i <= 10; i++){
+        n = 0;
+        cout << "For " << 6 << " points:" << endl;
+        chrono::steady_clock sc;   // create an object of `steady_clock` class
+        auto start = sc.now();     // start timer
 
-    bool visited[graph.n_stops()];
-    memset(visited, false, sizeof(visited));
+        buildRoute(6, Route(std::vector<int>(1, graph.getStartNode()), 0), 0);
 
-    while(graph.getPassengers().size() > 0){
+        //chooseRoute(routes);
 
-        //add start and finish nodes to route
-        std::vector<int> busRoute;
-        busRoute.push_back(graph.getStartNode());
-        busRoute.push_back(graph.getFinishNode());
+        cout << n << endl;
+        auto end = sc.now();       // end timer (starting & ending is done by measuring the time at the moment the process started & ended respectively)
+        auto time_span = static_cast<chrono::duration<double>>(end - start);   // measure time span between start & end
+        cout<<"Operation took: "<<time_span.count()<<" seconds !!!" << endl << endl;
+    //}
+}
 
-        int current = graph.getStartNode();
+void Router::chooseRoute(std::vector<Route> routes){
 
-        while(current != graph.getFinishNode()){
+    //build in function above
+    std::vector<Route>::iterator it = routes.begin();
 
-            int nextStop = chooseStop(graph.getRoutes(current));
+    double best = -std::numeric_limits<double>::infinity();
 
-            //get passengers into bus
-            std::vector<std::pair<int,int>> passengers = graph.getPassengers(nextStop, true, true);
-            for(int i = 0; i < passengers.size(); i++)
-                waitList.insert(passengers[i].second);
+    std::vector<Route>::iterator chosen = it;
 
-            passengersInBus.insert(passengersInBus.end(), passengers.begin(), passengers.end());;
-            visited[nextStop] = true;
+    while(it != routes.end()){
 
-            current = nextStop;
+        std::vector<string> col_names;
+        for(int i = 0; i < it->route.size()-1; i++){
+            for(int j = i+1; j < it->route.size(); j++){
+                std::ostringstream colname;
+                colname << "V" << i << "," << j;
+                col_names.push_back(colname.str());
+            }
         }
 
-        busRoutes.push_back(busRoute);
+        int n_var = col_names.size();
+
+        lprec * lp = make_lp(0, n_var);
+
+        //set column names for Vij
+        for(int i = 0; i < col_names.size(); i++){
+            set_col_name(lp, i+1, const_cast<char*>(col_names[i].c_str()));
+        }
+
+        double row[1+n_var];
+        set_add_rowmode(lp, TRUE);
+
+        //************
+
+
+        for(int i = 1; i < 1+n_var; i++){
+            row[i] = passengerFee;
+            set_int(lp, i, TRUE); //value must be int
+        }
+
+        //set obj fn = Max sum(dist_total)-P*(sum(Vij))
+        set_obj_fn(lp, row);
+        set_maxim(lp);
+
+
+        //set obj fn <- to do: add total cost of route to f
+        //memset(row, passengerFee, sizeof(row)); //check
+
+
+        //****************
+
+
+        int n_rest = 0; //todo -> calculate number of restrictions
+
+        resize_lp(lp, n_rest, n_var);
+
+        //rest: sum(Vij) < Cmax
+        memset(row, 0, sizeof(row));
+
+
+        for(int i = 0; i < it->route.size()-1; i++){ //fix
+            memset(row, 0, sizeof(row));
+            for(int j = i+1; j < it->route.size(); j++){
+                std::ostringstream colname;
+                colname << "V" << i << "," << j;
+                char * name = const_cast<char*>(colname.str().c_str());
+                int index = get_nameindex(lp, name, FALSE);
+                //int index = get_nameindex(lp, const_cast<char*>(colname.str().c_str()), FALSE);
+                row[index] = 1;
+            }
+            add_constraint(lp, row, LE, maxCapacity);
+        }
+
+        //add restriction: each(vij) <= P(i,j).size()
+        for(int i = 0; i < it->route.size(); i++){
+            for(int j = i+1; j < it->route.size(); j++){
+                memset(row, 0, sizeof(row));
+                std::ostringstream colname;
+                colname << "V" << i << "," << j;
+                int index = get_nameindex(lp, const_cast<char*>(colname.str().c_str()), FALSE);
+                row[index] = 1;
+                add_constraint(lp, row, LE, graph.n_passengers(it->route.at(i), it->route.at(j)));
+            }
+        }
+
+        memset(row, 1, sizeof(row));
+        add_constraint(lp, row, GE, 0.0);
+
+        set_add_rowmode(lp, FALSE);
+
+        solve(lp);
+
+        //cout << "tableau:"<<endl;
+        //print_tableau(lp);
+
+        //get economic fn value
+        double heuristic =  -it->totalDistance*cost + get_objective(lp);
+        get_variables(lp, row);
+
+        //compare to previous, save index
+        if(heuristic > best){
+            chosen = it;
+            best = heuristic;
+         }
+
+        //return row somehow, use it to remove passengers
+
+        delete_lp(lp);
+        it++;
+    }
+
+    //return best route, subtract passengers, repeat until done.
+    cout << "Max profit: " << best << endl;
+}
+
+void Router::buildRoute(int size, Route solution, int xChosen){
+
+    if(solution.route.size() == size+1){ //account for finish node
+
+end:
+        /*for(int i = 0; i < solution.size(); i++){
+            cout << solution[i] << ",";
+        }
+        cout << endl;*/
+        n++;
+        solution.route.push_back(graph.getFinishNode());
+        routes.push_back(solution);
+        return;
+    }
+
+    std::vector<int> availables; //build available nodes
+
+    //all Ys so that follow start->Y are available
+    {
+        std::vector<int> toFinish = getYs(graph.getStartNode());
+        for(int i = 0; i < toFinish.size(); i++)
+            nonRepeatAdd(&availables, toFinish[i]);
+
+    }
+
+    for(int i = 0; i < solution.route.size(); i++){
+        std::vector<int> ys = getYs(solution.route[i]);
+
+        //put the ys of the xs in the list in available
+        for(int j = 0; j < ys.size(); j++){
+            if(ys[j] != graph.getFinishNode() &&
+                    !contains(availables, ys[j]) && !contains(solution.route, ys[j]))
+                    availables.push_back(ys[j]);
+        }
+    }
+
+   std::vector<int> xs = getXs();
+
+   for(int i = 0; i < xs.size(); i++){
+       if(!contains(availables, xs[i])
+               && !contains(solution.route, xs[i])){
+           //x node enters if it has a target in finish or if there is space for at least itself and a target
+           if(!contains(rules[xs[i]], graph.getFinishNode()) || (size - solution.route.size() >= xChosen + 2))
+               availables.push_back(xs[i]);
+       }
+   }
+
+    if(availables.size() == 0){
+       if(solution.route.size() == size)
+            goto end;
+        else
+           return;
+
+    }
+
+
+    for(int i = 0; i < availables.size(); i++){
+        Route newSolution = solution;
+        newSolution.route.push_back(availables[i]);
+
+        if(newSolution.route.size() > 1)
+            newSolution.totalDistance += graph.distance[newSolution.route[newSolution.route.size()-2]][newSolution.route[newSolution.route.size()-1]];
+        else
+            newSolution.totalDistance += graph.distance[graph.getStartNode()][newSolution.route.size()-1];
+
+        if(newSolution.totalDistance <= maxDistance){
+
+            if(contains(xs, availables[i]))
+                buildRoute(size, newSolution, xChosen+1);
+            else
+                buildRoute(size, newSolution, xChosen);
+
+        }
     }
 }
 
-//todo: add distance constraint
-int Router::chooseStop(std::vector<std::pair<int, double> > routes){
+std::vector<int> Router::getXs(){
+    std::vector<int> xs;
 
-    lprec *lp = make_lp(0, routes.size());
-    int nrest = 1;
-
-    set_add_rowmode(lp, TRUE);
-    double row[1+routes.size()];
-
-    for(int i = 1; i <= routes.size(); i++){
-        row[i] = (routes[i-1].second)*cost - passengerFee*graph.getPassengers(i-1, true, false).size();
-        set_int(lp, i, TRUE); //value must be int
+    for(std::map<int, std::vector<int>>::iterator iter = rules.begin(); iter != rules.end(); ++iter)
+    {
+        int k =  iter->first;
+        if(std::find(xs.begin(), xs.end(), k) == xs.end())
+            xs.push_back(k);
     }
 
-    //set obj fn = Max sum(C x d - Fee x p)Xi
-    //Xi = 1 if stop is chosen, 0 otherwise
-    set_obj_fn(lp, row);
-    set_maxim(lp);
+    return xs;
+}
 
-    resize_lp(lp, nrest, routes.size());
+std::vector<int> Router::getYs(int x){
+    if(rules.find(x) != rules.end())
+        return rules[x];
+    return std::vector<int>();
 
-    //add constraint: sum(Xi) = 1
-    memset(row, 1, sizeof(row));
-    add_constraint(lp, row, EQ, 1.0);
+}
 
+bool Router::contains(std::vector<int> list, int element){
+    return std::find(list.begin(), list.end(), element) != list.end();
+}
 
-    //todo: add distance constraint
-
-    //finish adding constraints, solve
-    set_add_rowmode(lp, FALSE);
-    solve(lp);
-
-    get_variables(lp, row);
-
-    //return chosen stop
-    for(int i = 0; i < sizeof(row); i++){
-        if(row[i])
-            return i;
-    }
-
-    return -1;
+void Router::nonRepeatAdd(std::vector<int>* list, int element){
+    if(!contains(*list, element))
+        list->push_back(element);
 }

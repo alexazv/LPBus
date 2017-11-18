@@ -44,6 +44,7 @@ Graph::Graph(const char * filename){
                 map.insert(std::pair<string,int>(tokens[0], i));
                 addStop();
                 i++;
+                coord.push_back(std::pair<int, int>(std::stoi(tokens[1]), std::stoi(tokens[2])));
             }
 
             getline(infile, line);
@@ -86,6 +87,7 @@ std::vector<std::pair<int, int> > Graph::getPassengers(){
 std::vector<std::pair<int, int> > Graph::getPassengers(int stop, bool direction, bool remove){
 
     std::vector<std::pair<int, int>> passengers;
+    std::vector<int> toErase;
     for(int i = 0; i < passengerList.size(); i++){
         int index = -1;
         if((passengerList[i].first == stop && direction) || (passengerList[i].second == stop && !direction))
@@ -94,9 +96,13 @@ std::vector<std::pair<int, int> > Graph::getPassengers(int stop, bool direction,
         if(index != -1){
             passengers.push_back(passengerList[i]);
             if(remove)
-                passengerList.erase(passengerList.begin() + index);
+                toErase.push_back(index);
         }
     }
+
+    for(int i = 0; i < toErase.size(); i++)
+        passengerList.erase(passengerList.begin() + toErase.at(i));
+
     return passengers;
 }
 
@@ -151,6 +157,7 @@ void Graph::calculateDistances(){
 
 
     for(int i = 0; i< N; i++){
+        distance[i][i] = 0;
         std::vector<std::pair<int, double>> routes = getRoutes(i);
         for(int j = 0; j < routes.size(); j++)
                 distance[i][routes[j].first] = routes[j].second;
@@ -164,7 +171,17 @@ void Graph::calculateDistances(){
            for(int j = 0 ; j != N; j++)
                 distance[i][j] = (distance[i][j] < (distance[i][k] + distance[k][j])) ?
                     distance[i][j] : (distance[i][k] + distance[k][j]);
+}
 
-    int p = 5;
-    p+=p;
+int Graph::n_passengers(){
+    return passengerList.size();
+}
+int Graph::n_passengers(int start, int target){
+    int number = 0;
+
+    for(int i = 0; i < passengerList.size(); i++)
+        if(passengerList.at(i).first == start && passengerList.at(i).second)
+            number++;
+
+    return number;
 }

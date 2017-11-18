@@ -1,5 +1,6 @@
-QT += core
-QT -= gui
+QT += core gui
+
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 CONFIG += c++11
 
@@ -16,7 +17,10 @@ SOURCES += \
     passengercreator.cpp \
     router.cpp \
     graph.cpp \
-    main.cpp
+    main.cpp \
+    route.cpp \
+    routetest.cpp\
+    mainwindow.cpp
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which as been marked deprecated (the exact warnings
@@ -32,7 +36,13 @@ DEFINES += QT_DEPRECATED_WARNINGS
 HEADERS += \
     passengercreator.h \
     router.h \
-    graph.h
+    graph.h \
+    route.h \
+    mainwindow.h\
+    routetest.h
+
+FORMS += \
+        mainwindow.ui
 
 win32: LIBS += -L$$PWD/lib/lp_solve_5.5.2.5_dev_win32/ -llpsolve55
 
@@ -44,3 +54,5 @@ DISTFILES += \
     maps/map-istanbul.txt \
     maps/map-san-francisco.txt \
     maps/map-stanford-small.txt
+
+FORMS +=

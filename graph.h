@@ -15,6 +15,8 @@ public:
     std::vector<std::pair<int, int> > getPassengers();
     //direction - >true - going up; false - going down
     std::vector<std::pair<int, int> > getPassengers(int stop, bool direction, bool remove);
+    int n_passengers();
+    int n_passengers(int start, int target);
     void addPassenger(int start, int finish);
     void trimStop(int stop);
     int getStartNode();
@@ -26,8 +28,13 @@ public:
     int n_stops();
     //std::vector<std::vector<std::pair<int, double>>> getRoutes();
     std::vector<std::pair<int, double> > getRoutes(int stop);
+
     void calculateDistances();
+
+    std::pair<int, int> imageSize;
     std::vector<std::vector<double>> distance;
+    std::vector<std::pair<int, int>> coord;
+    std::vector<std::pair<int, int>> passengerList; //pair<start, finish>
 
 private:
     void addStop();
@@ -39,7 +46,6 @@ private:
     int startNode;
     int finishNode;
     std::vector<std::vector<std::pair<int, double>>> routes; //pair <destination, value>
-    std::vector<std::pair<int, int>> passengerList; //pair<start, finish>
     std::vector<string> split(string line, char delim);
 };
 
