@@ -43,33 +43,41 @@ Router::Router(Graph map, double cost, double passengerFee, double maxDistance, 
 
 void Router::buildAllRoutes(){
 
-    //for(int i = 2; i <= 10; i++){
+    for(int i = 2; i <= 10; i++){
+        routes.clear();
+        routes.shrink_to_fit();
         n = 0;
-        cout << "For " << 6 << " points:" << endl;
+        cout << "For " << i << " points:" << endl;
         chrono::steady_clock sc;   // create an object of `steady_clock` class
         auto start = sc.now();     // start timer
 
-        buildRoute(6, Route(std::vector<int>(1, graph.getStartNode()), 0), 0);
+        buildRoute(i, Route(std::vector<int>(1, graph.getStartNode()), 0), 0);
 
-        //chooseRoute(routes);
-
-        cout << n << endl;
+        cout << n << " combinations" << endl;
         auto end = sc.now();       // end timer (starting & ending is done by measuring the time at the moment the process started & ended respectively)
         auto time_span = static_cast<chrono::duration<double>>(end - start);   // measure time span between start & end
-        cout<<"Operation took: "<<time_span.count()<<" seconds !!!" << endl << endl;
-    //}
+        cout<<"Operation took: "<<time_span.count()<<" seconds !!!" << endl;
+
+        start = sc.now();
+
+        chooseRoute(routes);
+
+        end = sc.now();       // end timer (starting & ending is done by measuring the time at the moment the process started & ended respectively)
+        time_span = static_cast<chrono::duration<double>>(end - start);   // measure time span between start & end
+        cout<<"Operation took: "<<time_span.count()<<" seconds !!!" << endl << "*************" << endl;
+    }
 }
 
-void Router::chooseRoute(std::vector<Route> routes){
+void Router::chooseRoute(std::vector<Route> allRoutes){
 
     //build in function above
-    std::vector<Route>::iterator it = routes.begin();
+    std::vector<Route>::iterator it = allRoutes.begin();
 
     double best = -std::numeric_limits<double>::infinity();
 
     std::vector<Route>::iterator chosen = it;
 
-    while(it != routes.end()){
+    while(it != allRoutes.end()){
 
         std::vector<string> col_names;
         for(int i = 0; i < it->route.size()-1; i++){
@@ -100,14 +108,9 @@ void Router::chooseRoute(std::vector<Route> routes){
             set_int(lp, i, TRUE); //value must be int
         }
 
-        //set obj fn = Max sum(dist_total)-P*(sum(Vij))
+        //set obj fn = Max P*(sum(Vij))
         set_obj_fn(lp, row);
         set_maxim(lp);
-
-
-        //set obj fn <- to do: add total cost of route to f
-        //memset(row, passengerFee, sizeof(row)); //check
-
 
         //****************
 
@@ -127,7 +130,6 @@ void Router::chooseRoute(std::vector<Route> routes){
                 colname << "V" << i << "," << j;
                 char * name = const_cast<char*>(colname.str().c_str());
                 int index = get_nameindex(lp, name, FALSE);
-                //int index = get_nameindex(lp, const_cast<char*>(colname.str().c_str()), FALSE);
                 row[index] = 1;
             }
             add_constraint(lp, row, LE, maxCapacity);
@@ -150,10 +152,10 @@ void Router::chooseRoute(std::vector<Route> routes){
 
         set_add_rowmode(lp, FALSE);
 
-        solve(lp);
+        //dont print while solving
+        set_verbose(lp, IMPORTANT);
 
-        //cout << "tableau:"<<endl;
-        //print_tableau(lp);
+        solve(lp);
 
         //get economic fn value
         double heuristic =  -it->totalDistance*cost + get_objective(lp);
@@ -165,19 +167,25 @@ void Router::chooseRoute(std::vector<Route> routes){
             best = heuristic;
          }
 
-        //return row somehow, use it to remove passengers
+        //todo: return row somehow, use it to remove passengers
+
+        cout << it - allRoutes.begin()+1 << "/" << allRoutes.size() << " combinations checked" << '\r';
 
         delete_lp(lp);
         it++;
     }
-
+    cout << '\r' << endl;
     //return best route, subtract passengers, repeat until done.
     cout << "Max profit: " << best << endl;
+    cout << "Chosen route: " << endl;
+    for(int i = 0; i < chosen->route.size(); i++)
+        cout << chosen->route[i] << ",";
+    cout << endl;
 }
 
 void Router::buildRoute(int size, Route solution, int xChosen){
 
-    if(solution.route.size() == size+1){ //account for finish node
+    if(solution.route.size()-1 == size){ //account for finish node
 
 end:
         /*for(int i = 0; i < solution.size(); i++){
@@ -191,14 +199,6 @@ end:
     }
 
     std::vector<int> availables; //build available nodes
-
-    //all Ys so that follow start->Y are available
-    {
-        std::vector<int> toFinish = getYs(graph.getStartNode());
-        for(int i = 0; i < toFinish.size(); i++)
-            nonRepeatAdd(&availables, toFinish[i]);
-
-    }
 
     for(int i = 0; i < solution.route.size(); i++){
         std::vector<int> ys = getYs(solution.route[i]);
@@ -217,17 +217,15 @@ end:
        if(!contains(availables, xs[i])
                && !contains(solution.route, xs[i])){
            //x node enters if it has a target in finish or if there is space for at least itself and a target
-           if(!contains(rules[xs[i]], graph.getFinishNode()) || (size - solution.route.size() >= xChosen + 2))
+           if(contains(rules[xs[i]], graph.getFinishNode()) || (size - solution.route.size() >= xChosen + 2))
                availables.push_back(xs[i]);
        }
    }
 
     if(availables.size() == 0){
-       if(solution.route.size() == size)
-            goto end;
-        else
-           return;
-
+       if(solution.route.size()-1 != size)
+            return;
+        goto end;
     }
 
 
