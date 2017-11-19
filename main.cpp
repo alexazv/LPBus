@@ -12,7 +12,7 @@ using namespace std;
 int main(int argc, char *argv[])
 {
 
-
+/*
     Graph graph("..//LPBUS//maps//map-stanford-small.txt"); //relative path to build
     graph.setMaxDistance(500); //arbitrary
     graph.setStartNode(19);
@@ -27,14 +27,14 @@ int main(int argc, char *argv[])
     //router.chooseRoute(std::vector<Route>{path});
     router.buildAllRoutes();
 
-    //routeTest routes;
+    //routeTest routes;*/
 
 
-    /*QApplication a(argc, argv);
+    QApplication a(argc, argv);
     MainWindow w;
     w.show();
 
-    return a.exec();*/
+    return a.exec();
 
     return 0;
 }
