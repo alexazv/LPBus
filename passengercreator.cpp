@@ -10,14 +10,10 @@ PassengerCreator::PassengerCreator()
 
 }
 
-void PassengerCreator::createPasengers(Graph * map, int nPassengers)
+void PassengerCreator::createPasengers(Graph * map, int maxPassengers)
 {
-
-    std::vector<std::pair<int, int>> rules;
-
     int i = 0;
-    int maxPassengers = 50; //change -> arbitrary
-    while(i < nPassengers){
+    while(i < maxPassengers){
 
         int start, target;
 
@@ -39,27 +35,6 @@ void PassengerCreator::createPasengers(Graph * map, int nPassengers)
 
         i+=count;
 
-        bool found = false;
-        for(int j = 0; j < rules.size(); j++){
-            if(rules[i].first == start && rules[i].second == target){
-                found = true;
-                break;
-            }
-        }
-        if(!found)
-            rules.push_back(std::pair<int,int>(start, target));
     }
-
-    i = rules.size();
-
-    /*for(int i = 0; i < map->n_stops(); i++){
-        cout << "In stop " << i << endl << '\t';
-        for(int j = 0; j < map->getPassengers(i, true, false).size(); j++){
-            cout << i << "->" << map->getPassengers(i, true, false)[j].second << ",";
-        }
-
-        cout << endl;
-    }*/
-
 }
 

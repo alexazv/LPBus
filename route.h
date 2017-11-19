@@ -1,14 +1,17 @@
 #ifndef ROUTE_H
 #define ROUTE_H
 #include <vector>
+#include <string>
 
 class Route
 {
 public:
     Route();
-    Route(std::vector<int> route, double totalDistance);
-    std::vector<int> route;
+    Route(std::vector<int> path, double totalDistance);
+    std::vector<int> path;
     double totalDistance;
+    std::vector<std::string> plan;
+    std::vector<double> plan_values;
 };
 
 #endif // ROUTE_H

@@ -35,7 +35,7 @@ public:
     std::vector<std::vector<double>> distance;
     std::vector<std::pair<int, int>> coord;
     std::vector<std::pair<int, int>> passengerList; //pair<start, finish>
-
+    std::vector<string> split(string line, char delim);
 private:
     void addStop();
     void addRoute(int start, int finish, double distance);
@@ -46,7 +46,7 @@ private:
     int startNode;
     int finishNode;
     std::vector<std::vector<std::pair<int, double>>> routes; //pair <destination, value>
-    std::vector<string> split(string line, char delim);
+
 };
 
 #endif // MAP_H

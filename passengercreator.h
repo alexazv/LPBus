@@ -7,7 +7,7 @@ class PassengerCreator
 {
 public:
     PassengerCreator();
-    void createPasengers(Graph * map, int nPassengers);
+    void createPasengers(Graph * map, int maxPassengers);
 private:
 
 

@@ -19,7 +19,6 @@ SOURCES += \
     graph.cpp \
     main.cpp \
     route.cpp \
-    routetest.cpp\
     mainwindow.cpp
 
 # The following define makes your compiler emit warnings if you use
@@ -38,8 +37,7 @@ HEADERS += \
     router.h \
     graph.h \
     route.h \
-    mainwindow.h\
-    routetest.h
+    mainwindow.h
 
 FORMS += \
         mainwindow.ui

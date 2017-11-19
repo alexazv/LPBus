@@ -7,6 +7,6 @@ Route::Route(){
 
 Route::Route(std::vector<int> route, double totalDistance)
 {
-    this->route = route;
+    this->path = route;
     this->totalDistance = totalDistance;
 }
