@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
     PassengerCreator creator;
     creator.createPasengers(&graph, 50);
 
-    Router router(graph, 5.0, 3.5, 10.0, 5);
+    Router router(&graph, 5.0, 3.5, 10.0, 5);
     //Route path = router.findPath(std::vector<int>{graph.getStartNode(), 0, 12, 29, graph.getFinishNode()});
     //router.chooseRoute(std::vector<Route>{path});
     router.buildAllRoutes();

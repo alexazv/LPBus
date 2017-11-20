@@ -22,8 +22,8 @@ void PassengerCreator::createPasengers(Graph * map, int maxPassengers)
             target = rand() % map->n_stops();
         } while(start == target || start == map->getFinishNode() ||
                 target == map->getStartNode() ||
-              map->getPassengers(start, true, false).size() > maxPassengers ||
-                map->distance[start][target] + map->distance[target][map->getFinishNode()] > map->getMaxDistance());
+              map->getPassengers(start, true, false).size() > maxPassengers);
+        //|| map->distance[start][target] + map->distance[target][map->getFinishNode()] > map->getMaxDistance());
 
         int count = ((rand() % (int)maxPassengers*0.1+1) + 1);
 

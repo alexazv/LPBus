@@ -15,6 +15,7 @@ public:
     std::vector<std::pair<int, int> > getPassengers();
     //direction - >true - going up; false - going down
     std::vector<std::pair<int, int> > getPassengers(int stop, bool direction, bool remove);
+    void removePassengers(int start, int target, int number);
     int n_passengers();
     int n_passengers(int start, int target);
     void addPassenger(int start, int finish);

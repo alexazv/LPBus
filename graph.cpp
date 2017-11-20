@@ -185,3 +185,20 @@ int Graph::n_passengers(int start, int target){
 
     return number;
 }
+void Graph::removePassengers(int start, int target, int number){
+    std::vector<int> toErase; int found = 0;
+    for(int i = 0; i < passengerList.size() && found < number; i++){
+        int index = -1;
+        if((passengerList[i].first == start && passengerList[i].second == target)){
+            index = i;
+            found++;
+        }
+
+        if(index != -1){
+            toErase.push_back(index);
+        }
+    }
+
+    for(int i = 0; i < toErase.size(); i++)
+        passengerList.erase(passengerList.begin() + toErase.at(i));
+}
