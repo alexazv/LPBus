@@ -101,13 +101,14 @@ void MainWindow::on_createRouteButton_clicked(){
 
 
 
-    Router router(graph, 500.0, 3.5, 10.0, 5);
+    Router router(graph, 25, 3.5, 10.0, 40);
     router.buildAllRoutes();
     Route chosen = router.chooseRoute(router.routes);
     drawRoute(chosen);
 
     QString log(router.makeTrip(chosen).c_str());
     ui->logView->setPlainText(log);
+    ui->logView->setReadOnly(true);
     //ui->logView->setDisabled(true);
 
 }

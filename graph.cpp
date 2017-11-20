@@ -180,7 +180,7 @@ int Graph::n_passengers(int start, int target){
     int number = 0;
 
     for(int i = 0; i < passengerList.size(); i++)
-        if(passengerList.at(i).first == start && passengerList.at(i).second)
+        if(passengerList[i].first == start && passengerList[i].second == target)
             number++;
 
     return number;

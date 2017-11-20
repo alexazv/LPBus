@@ -4,6 +4,7 @@
 #include "route.h"
 #include <string>
 #include <vector>
+#include <set>
 #include <iostream>
 #include <cstdio>
 #include <ctime>
@@ -125,7 +126,7 @@ Route Router::chooseRoute(std::vector<Route> allRoutes){
         //****************
 
 
-        int n_rest = 0; //todo -> calculate number of restrictions
+        int n_rest = 2*(it->path.size() + n_var); //todo -> calculate number of restrictions
 
         resize_lp(lp, n_rest, n_var);
 
@@ -133,7 +134,7 @@ Route Router::chooseRoute(std::vector<Route> allRoutes){
         memset(row, 0, sizeof(row));
 
 
-        for(int i = 0; i < it->path.size()-1; i++){ //fix
+        for(int i = 0; i < it->path.size()-1; i++){
             memset(row, 0, sizeof(row));
             for(int j = i+1; j < it->path.size(); j++){
                 std::ostringstream colname;
@@ -142,8 +143,9 @@ Route Router::chooseRoute(std::vector<Route> allRoutes){
                 int index = get_nameindex(lp, name, FALSE);
                 row[index] = 1;
             }
-            add_constraint(lp, row, LE, maxCapacity);
+            add_constraint(lp, row, LE, graph.getPassengers(it->path[i], true, false).size());
         }
+
 
         //add restriction: each(vij) <= P(i,j).size()
         for(int i = 0; i < it->path.size(); i++){
@@ -152,18 +154,54 @@ Route Router::chooseRoute(std::vector<Route> allRoutes){
                 std::ostringstream colname;
                 colname << it->path[i] << "," << it->path[j];
                 int index = get_nameindex(lp, const_cast<char*>(colname.str().c_str()), FALSE);
-                row[index] = 1;
+                set_bounds(lp, index, 0.0, graph.n_passengers(it->path[i], it->path[j]));
+                /*row[index] = 1;
                 add_constraint(lp, row, LE, graph.n_passengers(it->path[i], it->path[j]));
-                add_constraint(lp, row, GE, 0.0);
-                //index++; //erase
+                add_constraint(lp, row, GE, 0.0);*/
             }
         }
+
+        //add restriction: maxCapacity
+        /*for(int i = 1; i < it->path.size(); i++){
+            memset(row, 0, sizeof(row));
+            for(int j =  0; j < i; j++){
+
+                std::ostringstream colname;
+                colname << it->path[i] << "," << it->path[j];
+                int index = get_nameindex(lp, const_cast<char*>(colname.str().c_str()), FALSE);
+                row[index] = 1;
+                add_constraint(lp, row, LE, maxCapacity);
+            }
+        }*/
+
+        for(int i = 0; i < it->path.size(); i++){
+            memset(row, 0, sizeof(row));
+
+            for(int j = i+1; j < it->path.size(); j++){
+                std::ostringstream colname;
+                colname << it->path[i] << "," << it->path[j];
+                int index = get_nameindex(lp, const_cast<char*>(colname.str().c_str()), FALSE);
+                row[index] = 1;
+            }
+
+            for(int k = 0; k < i; k++){
+                for(int j = i+1; j < it->path.size(); j++){
+                    std::ostringstream colname;
+                    colname << it->path[k] << "," << it->path[j];
+                    int index = get_nameindex(lp, const_cast<char*>(colname.str().c_str()), FALSE);
+                    row[index] = 1;
+                }
+            }
+            add_constraint(lp, row, LE, maxCapacity);
+
+        }
+
 
         set_add_rowmode(lp, FALSE);
 
         //dont print while solving
         set_verbose(lp, IMPORTANT);
-
+        //set_presolve(lp, PRESOLVE_LINDEP || PRESOLVE_IMPLIEDFREE || PRESOLVE_ROWS || PRESOLVE_COLS,  get_presolveloops(lp));
         solve(lp);
 
         //get economic fn value
@@ -374,8 +412,35 @@ string Router::makeTrip(Route route){
     std::ostringstream log;
 
     for(int i = 0; i < route.path.size(); i++){
-        int in = coming_in[route.path[i]];
-        int out = coming_out[route.path[i]];
+        int in = 0;
+        int out = 0;
+
+        std::ostringstream var;
+
+        for(int j = i+1; j < route.path.size(); j++){
+            if(route.path[i] == route.path[j])
+                break;
+            std::ostringstream var;
+            var << route.path[i] << "," << route.path[j];
+            int index = std::find(route.plan.begin(), route.plan.end(), var.str()) - route.plan.begin();
+            in += route.plan_values[index];
+        }
+
+        std::set<int> counted;
+        for(int j = 0; j < i; j++){
+
+            if(counted.find(route.path[j]) != counted.end())
+                continue;
+
+            counted.insert(route.path[j]);
+
+            std::ostringstream var;
+            var << route.path[j] << "," << route.path[i];
+            int index = std::find(route.plan.begin(), route.plan.end(), var.str()) - route.plan.begin();
+            out += route.plan_values[index];
+        }
+
+
         if(in || out){
             log << "Arriving at: " << route.path[i] << " -> ";
             log << in << " enter, " << out << " leave, ";
