@@ -54,6 +54,7 @@ private:
     void readFile(const char * filename);
     void updatePassengerList();
     void alert(QString message);
+    void drawMap();
 
 };
 

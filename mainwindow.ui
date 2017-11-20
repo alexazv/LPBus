@@ -35,25 +35,6 @@
     </property>
     <layout class="QVBoxLayout" name="verticalLayout">
      <item>
-      <widget class="QComboBox" name="comboBox">
-       <item>
-        <property name="text">
-         <string>Choose Map</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Test Map 1</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Test Map 2</string>
-        </property>
-       </item>
-      </widget>
-     </item>
-     <item>
       <widget class="QPushButton" name="mapLoad">
        <property name="text">
         <string>Load map</string>
@@ -159,6 +140,32 @@
      <enum>QFrame::Raised</enum>
     </property>
    </widget>
+   <widget class="QLabel" name="parametersview">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>520</y>
+      <width>121</width>
+      <height>131</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+   </widget>
+   <widget class="QLabel" name="status">
+    <property name="geometry">
+     <rect>
+      <x>30</x>
+      <y>410</y>
+      <width>111</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+   </widget>
    <zorder>frame</zorder>
    <zorder>graphicsView</zorder>
    <zorder>verticalLayoutWidget</zorder>
@@ -169,6 +176,8 @@
    <zorder>logView</zorder>
    <zorder>passenger_number</zorder>
    <zorder>gridLayoutWidget</zorder>
+   <zorder>parametersview</zorder>
+   <zorder>status</zorder>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">

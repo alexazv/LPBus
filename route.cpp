@@ -3,6 +3,7 @@
 
 Route::Route(){
     this->totalDistance = 0;
+    this->heuristic = INT_MIN;
 }
 
 Route::Route(std::vector<int> route, double totalDistance)

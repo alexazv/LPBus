@@ -34,7 +34,6 @@ void PassengerCreator::createPasengers(Graph * map, int maxPassengers)
         //cout << "added " << i+1 << " passengers" << endl;
 
         i+=count;
-
     }
 }
 

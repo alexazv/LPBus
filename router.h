@@ -25,8 +25,6 @@ private:
     bool contains(std::vector<int> list, int element);
     bool contains(std::vector<bool> list, bool element);
     std::map<int, std::vector<int>> rules;
-
-    void nonRepeatAdd(std::vector<int>* list, int element);
     std::vector<int> getYs(int x);
     std::vector<int> getXs();
 

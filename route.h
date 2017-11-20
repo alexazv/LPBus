@@ -12,6 +12,7 @@ public:
     double totalDistance;
     std::vector<std::string> plan;
     std::vector<double> plan_values;
+    double heuristic;
 };
 
 #endif // ROUTE_H

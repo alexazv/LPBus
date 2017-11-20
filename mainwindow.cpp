@@ -15,6 +15,8 @@ MainWindow::MainWindow(QWidget *parent) :
     box = new QSpinBox();
     box->setMinimum(1);
 
+    defined = false;
+
     passengerButton = new QPushButton("Add passengers");
     createRoute = new QPushButton("Calculate Route");
 
@@ -26,13 +28,15 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->logView = new QTextEdit();
     ui->logView->setReadOnly(true);
 
+    ui->parametersview = new QLabel();
+    ui->status = new QLabel();
+
     ui->gridLayout = new QGridLayout();
     cmax = new QSpinBox();
     cmax->setMinimum(1);
     startNode = new QSpinBox();
     finishNode = new QSpinBox();
     maxDistance = new QDoubleSpinBox();
-
     fee = new QDoubleSpinBox();
     cost = new QDoubleSpinBox();
 
@@ -52,44 +56,9 @@ MainWindow::~MainWindow()
 
 void MainWindow::readFile(const char * filename){
     graph =  Graph(filename);
-    graph.setMaxDistance(500); //arbitrary
     graph.calculateDistances();
-    graph.setStartNode(19);
-    graph.setFinishNode(35);
 
-    int radius = 2;
-
-    QBrush brush(Qt::white);
-    QPen pen(Qt::black);
-
-    for(int i = 0; i < graph.n_stops(); i++){
-
-        scene->addEllipse(graph.coord[i].first-radius, graph.coord[i].second-radius, radius*2, radius*2, pen, QBrush(Qt::red));
-
-        std::vector<std::pair<int, double>> routes = graph.getRoutes(i);
-
-        for(int j = 0; j < routes.size(); j++){
-
-            int x1 = graph.coord[i].first;
-            int y1 = graph.coord[i].second;
-            int x2 = graph.coord[routes[j].first].first;
-            int y2 = graph.coord[routes[j].first].second;
-
-            scene->addLine(x1, y1, x2, y2);
-
-            /*QGraphicsTextItem * io = scene->addText(QString::number(i));
-            io->setPos(x1, y1);
-            QString value;
-            value.setNum(routes[j].second*100, 'f');
-            io = scene->addText(value);
-            io->setPos((x1+x2)/2,(y1+y2)/2);
-
-            /*QString value = QString::fromStdString(std::to_string(routes[i].second));
-            io->setPos((x1+x2)/2,(y1+y2)/2);*/
-
-        }
-
-    }
+    drawMap();
 
     ui->verticalLayout_2->addWidget(box);
     ui->graphicsView->setScene(scene);
@@ -100,6 +69,8 @@ void MainWindow::readFile(const char * filename){
 
 void MainWindow::on_mapLoad_clicked()
 {
+    ui->status->setText("Loading...");
+
     readFile("..//LPBUS//maps//map-stanford-small.txt");
 
     ui->gridLayout->addWidget(new QLabel("Starting Node"), 0, 0);
@@ -123,18 +94,18 @@ void MainWindow::on_mapLoad_clicked()
     ui->gridLayout->addWidget(fee, 5, 1);
 
     ui->gridLayout->addWidget(setParameters, 6,0);
+
+    ui->status->setText("Done");
 }
 
 void MainWindow::on_createRouteButton_clicked(){
-    //teste
-    //todo: calculate route
 
     if(graph.passengerList.empty()){
-        QMessageBox msgBox;
-        msgBox.setText("There are no passengers");
-        msgBox.exec();
+        alert("No Passengers");
         return;
     }
+
+     ui->status->setText("Calculating...");
 
     router.buildAllRoutes();
 
@@ -148,18 +119,18 @@ void MainWindow::on_createRouteButton_clicked(){
 
 
     QString log(router.makeTrip(chosen).c_str());
-    ui->logView->setPlainText(log);
+    ui->logView->append(log);
+    ui->logView->append("###########");
     ui->logView->setReadOnly(true);
     updatePassengerList();
-    //ui->logView->setDisabled(true);
 
     createRoute->setText("Next bus");
 
+     ui->status->setText("Done");
+
 }
 
-void MainWindow::drawRoute(Route route){
-
-
+void MainWindow::drawMap(){
     scene->clear();
 
     int radius = 6;
@@ -167,8 +138,43 @@ void MainWindow::drawRoute(Route route){
     QBrush brush(Qt::white);
     QPen pen(Qt::black);
 
-    for(int i = 0; i < graph.n_stops(); i++)
+    for(int i = 0; i < graph.n_stops(); i++){
+
         scene->addEllipse(graph.coord[i].first-radius, graph.coord[i].second-radius, radius*2, radius*2, pen, QBrush(Qt::red));
+
+        std::vector<std::pair<int, double>> routes = graph.getRoutes(i);
+
+        int x1 = graph.coord[i].first;
+        int y1 = graph.coord[i].second;
+
+        QString value = QString::fromStdString(std::to_string(i));
+        QGraphicsTextItem * io = scene->addText(value, QFont("Arial", 12, QFont::Bold));
+        io->setPos(x1, y1);
+
+        for(int j = 0; j < routes.size(); j++){
+
+            int x2 = graph.coord[routes[j].first].first;
+            int y2 = graph.coord[routes[j].first].second;
+
+            scene->addLine(x1, y1, x2, y2);
+
+            QGraphicsTextItem * dist = scene->addText(QString::number(routes[j].second, 'f', 3));
+            //QGraphicsRectItem * rect = scene->addRect(dist->boundingRect(), pen, brush);
+            QRectF rect = dist->boundingRect();
+            dist->setPos((x1+x2-rect.width())/2,(y1+y2-rect.height())/2);
+            //rect->setPos((x1+x2)/2,(y1+y2)/2);
+        }
+    }
+}
+
+void MainWindow::drawRoute(Route route){
+
+    drawMap();
+
+    int radius = 8;
+
+    QBrush brush(Qt::white);
+    QPen pen(Qt::black);
 
     for(int i = 1; i < route.path.size(); i++){
 
@@ -180,31 +186,33 @@ void MainWindow::drawRoute(Route route){
         int x2 = graph.coord[route.path[i]].first;
         int y2 = graph.coord[route.path[i]].second;
 
-        scene->addLine(x1, y1, x2, y2, QPen(Qt::green));
-        //scene->addPolygon(x1, y1, x2, y2, QPen(Qt::green));
+        QPen linePen(QColor(255-i*10, 0, 0+i*10));
+        linePen.setWidth(3);
 
-        QString value = QString::fromStdString(std::to_string(route.path[i-1]));
-        QGraphicsTextItem * io = scene->addText(value);
-        io->setPos(x1, y1);
+        scene->addLine(x1, y1, x2, y2, linePen);
+        //scene->addPolygon(x1, y1, x2, y2, QPen(Qt::green));
     }
 
-    int x1 = graph.coord[route.path.size()-1].first;
-    int y1 = graph.coord[route.path.size()-1].second;
-    QString value = QString::fromStdString(std::to_string(route.path.size()-1));
+    QString value = QString::fromStdString(std::to_string(graph.n_stops()-1));
     QGraphicsTextItem * io = scene->addText(value);
-    io->setPos(x1, y1);
-
+    io->setPos(1, 3);
 
 }
 
 void MainWindow::on_passengerButton_clicked()
 {
+    if(!defined){
+        alert("There are parameters not set");
+        return;
+    }
+
     PassengerCreator creator;
     creator.createPasengers(&graph, box->value());
     updatePassengerList();
 }
 
 void MainWindow::updatePassengerList(){
+
     ui->listWidget->clear();
     for(int i = 0; i < graph.passengerList.size(); i++){
 
@@ -227,11 +235,42 @@ void MainWindow::setParameters_clicked(){
         return;
     }
 
+
+    if(fee->value() == 0){
+        alert("Passenger cost can't be 0");
+        return;
+    }
+
+    if(cost->value() == 0){
+        alert("Distance cost cost can't be 0");
+        return;
+    }
+
+    if(maxDistance->value() == 0){
+        alert("Max Distance can't be 0");
+        return;
+    }
+
+    if(cmax->value() == 0){
+        alert("Vehicle capacity can't be 0");
+        return;
+    }
+
     graph.setFinishNode(finishNode->value());
     graph.setStartNode(startNode->value());
 
     router = Router(&graph, this->cost->value(), this->fee->value(),
                         this->maxDistance->value(), this->cmax->value());
+
+    QString view;
+    view += "Start Node: " + QString::number(startNode->value()) + "\n";
+    view += "Finish Node: " + QString::number(finishNode->value()) + "\n";
+    view += "Max Distance " + QString::number(maxDistance->value()) + "\n";
+    view += "Passenger Cost: " + QString::number(fee->value()) + "\n";
+    view += "Distance Cost: " + QString::number(cost->value()) + "\n";
+    view += "Vehicle Capacity: " + QString::number(cmax->value()) + "\n";
+
+    ui->parametersview->setText(view);
 
     defined = true;
 }

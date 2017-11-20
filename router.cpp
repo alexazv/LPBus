@@ -94,9 +94,13 @@ Route Router::chooseRoute(std::vector<Route> allRoutes){
     std::vector<string> chosen_col_names;
     std::vector<double> var_values;
 
-
-
     while(it != allRoutes.end()){
+
+        if(it->path.size()==0){
+            cout << it - allRoutes.begin()+1 << "/" << allRoutes.size() << " combinations checked" << '\r';
+            it++;
+            continue;
+        }
 
         std::vector<string> col_names;
         for(int i = 0; i < it->path.size()-1; i++){
@@ -227,15 +231,15 @@ Route Router::chooseRoute(std::vector<Route> allRoutes){
             var_values.insert(var_values.end(), &row[0], &row[n_var]);
          }
 
-        cout << it - allRoutes.begin()+1 << "/" << allRoutes.size() << " combinations checked" << '\r';
-
         delete_lp(lp);
+        cout << it - allRoutes.begin()+1 << "/" << allRoutes.size() << " combinations checked" << '\r';
         it++;
     }
     cout << '\r' << endl;
     //return best route, subtract passengers, repeat until done.
     chosen->plan = chosen_col_names;
     chosen->plan_values = var_values;
+    chosen->heuristic = best;
 
     cout << "Max profit: " << best << endl;
     cout << "Chosen route: " << endl;
@@ -366,6 +370,7 @@ Route Router::findPath(std::vector<int>nodes){
                     u = i;
             }
 
+
             visited[u] = true;
 
             if(u == target)
@@ -421,6 +426,17 @@ string Router::makeTrip(Route route){
     }
 
     std::ostringstream log;
+
+    log << "Total distance: " << route.totalDistance << endl;
+    log << "Profit: " << route.heuristic << endl;
+    log << "Chosen route: " << endl;
+    for(int i = 0; i < route.path.size(); i++){
+        log << route.path[i];
+        if(i != route.path.size()-1){
+            log << "->";
+        }
+    }
+    log << endl;
 
     for(int i = 0; i < route.path.size(); i++){
         int in = 0;
