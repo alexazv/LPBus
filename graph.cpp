@@ -153,7 +153,7 @@ void Graph::calculateDistances(){
 
     int N = n_stops();
 
-    distance = std::vector<std::vector<double>>(N, std::vector<double>(N, maxDistance));
+    distance = std::vector<std::vector<double>>(N, std::vector<double>(N, INT_MAX));
 
 
     for(int i = 0; i< N; i++){
@@ -161,16 +161,17 @@ void Graph::calculateDistances(){
         std::vector<std::pair<int, double>> routes = getRoutes(i);
         for(int j = 0; j < routes.size(); j++)
                 distance[i][routes[j].first] = routes[j].second;
-
     }
-
 
     //Floyd-Warshall algorythm (use more efficient one?)
     for(int k = 0 ; k != N; k++)
         for(int i = 0 ; i != N; i++)
-           for(int j = 0 ; j != N; j++)
+           for(int j = 0 ; j != N; j++){
                 distance[i][j] = (distance[i][j] < (distance[i][k] + distance[k][j])) ?
                     distance[i][j] : (distance[i][k] + distance[k][j]);
+           }
+
+    cout << "";
 }
 
 int Graph::n_passengers(){

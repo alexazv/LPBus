@@ -17,17 +17,17 @@ using namespace std;
 long int n = 0;
 
 Router::Router(){
-
 }
 
 
 Router::Router(Graph * map, double cost, double passengerFee, double maxDistance, int maxCapacity)
 {
     this->graph = map;
+    this->bestPath = std::vector<std::vector<std::vector<int>>>(graph->n_stops(), std::vector<std::vector<int>>(graph->n_stops(), std::vector<int>()));
     this->cost = cost;
     this->passengerFee = passengerFee;
     this->maxDistance = maxDistance;
-    this->maxCapacity = maxCapacity;
+    this->maxCapacity = maxCapacity;  
 }
 
 void Router::buildRules(){
@@ -47,45 +47,34 @@ void Router::buildRules(){
 
 void Router::buildAllRoutes(){
 
-    routes.clear();
+    vector<Route>().swap(routes);
 
-    rules.clear();
+    std::map<int, std::vector<int>>().swap(rules);
 
     buildRules();
 
-    for(int i = 0; i <= 5 ; i++){
+    for(int i = 0; i <= 7 ; i++){
         n = 0;
         cout << "For " << i << " points:" << endl;
-        chrono::steady_clock sc;   // create an object of `steady_clock` class
-        auto start = sc.now();     // start timer
 
         buildRoute(i, Route(std::vector<int>(1, graph->getStartNode()), 0), 0);
 
         cout << n << " combinations" << endl;
-        auto end = sc.now();       // end timer (starting & ending is done by measuring the time at the moment the process started & ended respectively)
-        auto time_span = static_cast<chrono::duration<double>>(end - start);   // measure time span between start & end
-        cout<<"Operation took: "<<time_span.count()<<" seconds !!!" << endl;
-
-        //Route chosen = chooseRoute(routes);
-
-        //makeTrip(chosen);
 
         cout<< endl << "*************" << endl;
     }
 
     for(int j = 0; j < routes.size(); j++){
-
-        //routes[j].path.insert(routes[j].path.begin(), graph->getStartNode());
-        //routes[j].path.insert(routes[j].path.end(), graph->getFinishNode());
-        //routes[j].path.push_back(graph->getFinishNode());
-        routes[j] = findPath(routes[j].path);
+        routes[j] = findPath(&routes[j].path);
     }
+
+    cout << "";
 }
 
-Route Router::chooseRoute(std::vector<Route> allRoutes){
+Route Router::chooseRoute(std::vector<Route> * allRoutes){
 
     //build in function above
-    std::vector<Route>::iterator it = allRoutes.begin();
+    std::vector<Route>::iterator it = allRoutes->begin();
 
     double best = LONG_MIN;
 
@@ -94,19 +83,29 @@ Route Router::chooseRoute(std::vector<Route> allRoutes){
     std::vector<string> chosen_col_names;
     std::vector<double> var_values;
 
-    while(it != allRoutes.end()){
+    chrono::steady_clock sc;   // create an object of `steady_clock` class
+    auto start = sc.now();     // start timer
 
-        if(it->path.size()==0){
-            cout << it - allRoutes.begin()+1 << "/" << allRoutes.size() << " combinations checked" << '\r';
+    while(it != allRoutes->end()){
+
+        std::vector<int> critical;
+        for(int i = 0; i < it->path.size(); i++){
+            if(isInRules(it->path[i]))
+                critical.push_back(it->path[i]);
+        }
+
+        if(critical.size()==0){
+            cout << it - allRoutes->begin()+1 << "/" << allRoutes->size() << " combinations checked" << '\r';
             it++;
             continue;
         }
 
         std::vector<string> col_names;
-        for(int i = 0; i < it->path.size()-1; i++){
-            for(int j = i+1; j < it->path.size(); j++){
+        for(int i = 0; i < critical.size()-1; i++){
+            for(int j = i+1; j < critical.size(); j++){
+
                 std::ostringstream colname;
-                colname << it->path[i] << "," << it->path[j];
+                colname << critical[i] << "," << critical[j];
                 if(std::find(col_names.begin(), col_names.end(), colname.str()) == col_names.end())
                     col_names.push_back(colname.str());
             }
@@ -139,75 +138,69 @@ Route Router::chooseRoute(std::vector<Route> allRoutes){
         //****************
 
 
-        int n_rest = 2*(it->path.size() + n_var); //todo -> calculate number of restrictions
+        //int n_rest = 2*(critical.size() + n_var); //todo -> calculate number of restrictions
 
-        resize_lp(lp, n_rest, n_var);
+        //resize_lp(lp, n_rest, n_var);
 
         //add restriction: sum(Vij) < Cmax
-        memset(row, 0, sizeof(row));
 
-
-        for(int i = 0; i < it->path.size()-1; i++){
+        for(int i = 0; i < critical.size()-1; i++){
             memset(row, 0, sizeof(row));
-            for(int j = i+1; j < it->path.size(); j++){
+            for(int j = i+1; j < critical.size(); j++){
+
                 std::ostringstream colname;
-                colname << it->path[i] << "," << it->path[j];
+                colname << critical[i] << "," << critical[j];
                 char * name = const_cast<char*>(colname.str().c_str());
                 int index = get_nameindex(lp, name, FALSE);
                 row[index] = 1;
             }
-            add_constraint(lp, row, LE, graph->getPassengers(it->path[i], true, false).size());
+            add_constraint(lp, row, LE, graph->getPassengers(critical[i], true, false).size());
         }
 
 
         //add restriction: each(vij) <= P(i,j).size()
-        for(int i = 0; i < it->path.size(); i++){
-            for(int j = i+1; j < it->path.size(); j++){
-                memset(row, 0, sizeof(row));
+        for(int i = 0; i < critical.size(); i++){
+            for(int j = i+1; j < critical.size(); j++){
                 std::ostringstream colname;
-                colname << it->path[i] << "," << it->path[j];
+                colname << critical[i] << "," << critical[j];
                 int index = get_nameindex(lp, const_cast<char*>(colname.str().c_str()), FALSE);
-                set_bounds(lp, index, 0.0, graph->n_passengers(it->path[i], it->path[j]));
-                /*row[index] = 1;
-                add_constraint(lp, row, LE, graph->n_passengers(it->path[i], it->path[j]));
-                add_constraint(lp, row, GE, 0.0);*/
+                set_bounds(lp, index, 0.0, graph->n_passengers(critical[i], critical[j]));
             }
         }
 
-        //add restriction: maxCapacity
-        /*for(int i = 1; i < it->path.size(); i++){
-            memset(row, 0, sizeof(row));
-            for(int j =  0; j < i; j++){
+        //sum of all who have entered and not left at this point is <cmax
+        for(int i = 0; i < critical.size(); i++){
 
-                std::ostringstream colname;
-                colname << it->path[i] << "," << it->path[j];
-                int index = get_nameindex(lp, const_cast<char*>(colname.str().c_str()), FALSE);
-                row[index] = 1;
-                add_constraint(lp, row, LE, maxCapacity);
-            }
-        }*/
+            if(!isInRules(critical[i]))
+                continue;
 
-        for(int i = 0; i < it->path.size(); i++){
             memset(row, 0, sizeof(row));
 
-            for(int j = i+1; j < it->path.size(); j++){
+            for(int j = i+1; j < critical.size(); j++){
+
+                if(!isInRules(critical[j]))
+                    continue;
+
                 std::ostringstream colname;
-                colname << it->path[i] << "," << it->path[j];
+                colname << critical[i] << "," << critical[j];
                 int index = get_nameindex(lp, const_cast<char*>(colname.str().c_str()), FALSE);
                 row[index] = 1;
             }
 
             for(int k = 0; k < i; k++){
-                for(int j = i+1; j < it->path.size(); j++){
+                if(!isInRules(critical[k]))
+                    continue;
+
+                for(int j = i+1; j < critical.size(); j++){
                     std::ostringstream colname;
-                    colname << it->path[k] << "," << it->path[j];
+                    colname << critical[k] << "," << critical[j];
                     int index = get_nameindex(lp, const_cast<char*>(colname.str().c_str()), FALSE);
                     row[index] = 1;
                 }
             }
-            add_constraint(lp, row, LE, maxCapacity);
 
-        }
+                add_constraint(lp, row, LE, maxCapacity);
+            }
 
 
         set_add_rowmode(lp, FALSE);
@@ -232,8 +225,14 @@ Route Router::chooseRoute(std::vector<Route> allRoutes){
          }
 
         delete_lp(lp);
-        cout << it - allRoutes.begin()+1 << "/" << allRoutes.size() << " combinations checked" << '\r';
+        cout << it - allRoutes->begin()+1 << "/" << allRoutes->size() << " combinations checked" << '\r';
         it++;
+
+        auto end = sc.now();       // end timer (starting & ending is done by measuring the time at the moment the process started & ended respectively)
+        auto time_span = static_cast<chrono::duration<double>>(end - start);   // measure time span between start & end
+        if(time_span.count()/60 >= 3)
+            break;
+
     }
     cout << '\r' << endl;
     //return best route, subtract passengers, repeat until done.
@@ -331,6 +330,24 @@ std::vector<int> Router::getXs(){
     return xs;
 }
 
+bool Router::isInRules(int stop){
+
+    /*if(stop == graph->getStartNode() || stop == graph->getFinishNode()){
+        return true;
+    }*/
+
+    std::vector<int> xs = getXs();
+    if(contains(xs, stop))
+        return true;
+
+    else
+       for(int i = 0; i < xs.size(); i++){
+           if(contains(getYs(xs[i]), stop))
+               return true;
+       }
+    return false;
+}
+
 std::vector<int> Router::getYs(int x){
     if(rules.find(x) != rules.end())
         return rules[x];
@@ -346,68 +363,81 @@ bool Router::contains(std::vector<bool> list, bool element){
     return std::find(list.begin(), list.end(), element) != list.end();
 }
 
-Route Router::findPath(std::vector<int>nodes){
+Route Router::findPath(std::vector<int>*nodes){
 
     Route route;
+    Route * temp = new Route();
 
-    for(int k = 0; k < nodes.size()-1; k++){
-        int start = nodes[k];
-        int target = nodes[k+1]; //change
+    for(int k = 0; k < nodes->size()-1; k++){
+        delete(temp);
+        int start = nodes->at(k);
+        int target = nodes->at(k+1);
 
-
-        //all nodes unvisited
-        std::vector<bool> visited(graph->n_stops(), false);
-        //distance is infinite
-        std::vector<double> distance(graph->n_stops(), std::numeric_limits<int>::max());
-        distance[start] = 0;
-        //previous is undefined
-        std::vector<int> prev(graph->n_stops(), -1);
-
-        while(contains(visited, false)){
-            int u = -1;
-            for(int i = 0; i < distance.size(); i++){
-                if(!visited[i] && (u == -1 ||  distance[i] < distance[u]))
-                    u = i;
-            }
-
-
-            visited[u] = true;
-
-            if(u == target)
-                break;
-
-            std::vector<pair<int,double>> routes = graph->getRoutes(u);
-
-            for(int i = 0; i < routes.size(); i++){
-                int v = routes[i].first;
-                if(!visited[v]){
-                    double alt = distance[u] + routes[i].second;
-                    if(alt < distance[v]){
-                        distance[v] = alt;
-                        prev[v] = u;
-                    }
-                }
-            }
-
+        if(bestPath[start][target].size() > 0){
+            temp = new Route(bestPath[start][target], graph->distance[start][target]);
         }
 
-        if(route.totalDistance + distance[target] > maxDistance)
-            return Route();
+        else{
+            //all nodes unvisited
+            std::vector<bool> visited(graph->n_stops(), false);
+            //distance is infinite
+            std::vector<double> distance(graph->n_stops(), std::numeric_limits<int>::max());
+            distance[start] = 0;
+            //previous is undefined
+            std::vector<int> prev(graph->n_stops(), -1);
 
-        int u = target;
-        Route temp;
-        temp.path.insert(temp.path.begin(), u);
-        while(prev[u] != -1){
-            temp.path.insert(temp.path.begin(), prev[u]);
-            u = prev[u];
+            while(contains(visited, false)){
+                int u = -1;
+                for(int i = 0; i < distance.size(); i++){
+                    if(!visited[i] && (u == -1 ||  distance[i] < distance[u]))
+                        u = i;
+                }
+
+
+                visited[u] = true;
+
+                if(u == target)
+                    break;
+
+                std::vector<pair<int,double>> routes = graph->getRoutes(u);
+
+                for(int i = 0; i < routes.size(); i++){
+                    int v = routes[i].first;
+                    if(!visited[v]){
+                        double alt = distance[u] + routes[i].second;
+                        if(alt < distance[v]){
+                            distance[v] = alt;
+                            prev[v] = u;
+                        }
+                    }
+                }
+
+            }
+
+            //if(route.totalDistance + distance[target] > maxDistance)
+            //  return Route();
+
+            int u = target;
+
+            temp = new Route();
+            temp->path.insert(temp->path.begin(), u);
+            while(prev[u] != -1){
+                temp->path.insert(temp->path.begin(), prev[u]);
+                u = prev[u];
+            }
+
+            bestPath[start][target] = temp->path;
+            temp->totalDistance = distance[target];
+
         }
 
         if(route.path.empty())
-            route.path.insert(route.path.end(), temp.path.begin(), temp.path.end());
+            route.path.insert(route.path.end(), temp->path.begin(), temp->path.end());
         else
-            route.path.insert(route.path.end(), temp.path.begin()+1, temp.path.end());
+            route.path.insert(route.path.end(), temp->path.begin()+1, temp->path.end());
 
-        route.totalDistance += distance[target];
+        route.totalDistance += temp->totalDistance;
+        cout << "";
 
     }
 
@@ -430,6 +460,7 @@ string Router::makeTrip(Route route){
     log << "Total distance: " << route.totalDistance << endl;
     log << "Profit: " << route.heuristic << endl;
     log << "Chosen route: " << endl;
+
     for(int i = 0; i < route.path.size(); i++){
         log << route.path[i];
         if(i != route.path.size()-1){
@@ -442,11 +473,15 @@ string Router::makeTrip(Route route){
         int in = 0;
         int out = 0;
 
-        std::ostringstream var;
+        if(!isInRules(route.path[i]))
+            continue;
 
         for(int j = i+1; j < route.path.size(); j++){
             if(route.path[i] == route.path[j])
                 break;
+            if(!isInRules(route.path[j]))
+                continue;
+
             std::ostringstream var;
             var << route.path[i] << "," << route.path[j];
             int index = std::find(route.plan.begin(), route.plan.end(), var.str()) - route.plan.begin();
@@ -457,7 +492,7 @@ string Router::makeTrip(Route route){
         std::set<int> counted;
         for(int j = 0; j < i; j++){
 
-            if(counted.find(route.path[j]) != counted.end())
+            if(!isInRules(route.path[j]) || counted.find(route.path[j]) != counted.end())
                 continue;
 
             counted.insert(route.path[j]);

@@ -1,6 +1,7 @@
 #include "passengercreator.h"
 #include <time.h>
 #include<iostream>
+#include <stdlib.h>
 #include <set>
 
 using namespace std;
@@ -12,6 +13,9 @@ PassengerCreator::PassengerCreator()
 
 void PassengerCreator::createPasengers(Graph * map, int maxPassengers)
 {
+
+    srand(time(NULL));
+
     int i = 0;
     while(i < maxPassengers){
 

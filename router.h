@@ -13,8 +13,8 @@ public:
     void buildRoute(int size, Route solution, int xChosen);
     int chooseStop(std::vector<std::pair<int, double>> routes);
     void buildAllRoutes();
-    Route chooseRoute(std::vector<Route> routes);
-    Route findPath(std::vector<int>nodes);
+    Route chooseRoute(std::vector<Route> *routes);
+    Route findPath(std::vector<int> *nodes);
     std::vector<Route> routes;
     string makeTrip(Route route);
     double cost, passengerFee, maxDistance;
@@ -22,8 +22,10 @@ public:
 private:
     Graph * graph;
     void buildRules();
+    bool isInRules(int stop);
     bool contains(std::vector<int> list, int element);
     bool contains(std::vector<bool> list, bool element);
+    std::vector<std::vector<std::vector<int>>> bestPath;
     std::map<int, std::vector<int>> rules;
     std::vector<int> getYs(int x);
     std::vector<int> getXs();

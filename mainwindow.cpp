@@ -114,7 +114,7 @@ void MainWindow::on_createRouteButton_clicked(){
         return;
     }
 
-    Route chosen = router.chooseRoute(router.routes);
+    Route chosen = router.chooseRoute(&router.routes);
     drawRoute(chosen);
 
 
@@ -186,7 +186,7 @@ void MainWindow::drawRoute(Route route){
         int x2 = graph.coord[route.path[i]].first;
         int y2 = graph.coord[route.path[i]].second;
 
-        QPen linePen(QColor(255-i*10, 0, 0+i*10));
+        QPen linePen(QColor(255-i*5, 0, 0+i*5));
         linePen.setWidth(3);
 
         scene->addLine(x1, y1, x2, y2, linePen);
